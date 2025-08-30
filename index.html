@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Pet</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="player-level">Player Level: <span id="playerLevel">1</span></div>
+
+  <div class="pet-buttons">
+    <button onclick="switchPet('rabbit')">Rabbit 🐇</button>
+    <button onclick="switchPet('parrot')">Parrot 🦜</button>
+    <button onclick="switchPet('horse')">Horse 🐎</button>
+  </div>
+
+  <div class="pet-container">
+    <div class="pet" id="pet">🐇</div>
+    <div id="mood">Mood: 😊</div>
+    <div id="level">Pet Level: 1 | XP: 0/10</div>
+  </div>
+
+  <div class="chatbox" id="chatbox"></div>
+  <div class="input-container">
+    <input type="text" id="userInput" placeholder="Talk to your pet...">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <button id="readButton" onclick="showBookOptions()" disabled>Read to your pet 📚</button>
+  <button id="bgButton" onclick="changeBackground()" disabled>Change Background 🎨</button>
+
+  <script src="script.js"></script>
+</body>
+</html>
