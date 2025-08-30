@@ -1,3 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Pet</title>
+<style>
+  body { font-family: 'Comic Sans MS', sans-serif; margin:0; display:flex; flex-direction:column; align-items:center; height:100vh; background-color:#f0f8ff; }
+  .player-level { margin:10px; font-size:20px; font-weight:bold; }
+  .pet-buttons, .input-container { margin:10px 0; }
+  .pet-container { position:relative; width:100%; height:250px; }
+  .pet { font-size:100px; position:absolute; bottom:0; left:50%; transform:translateX(-50%); cursor:pointer; }
+  #chatbox { width:400px; max-width:90%; height:250px; border:2px solid #333; border-radius:10px; overflow-y:auto; background-color:#fff; padding:10px; margin:10px 0; }
+  input { flex:1; padding:10px; font-size:16px; border-radius:5px 0 0 5px; border:2px solid #333; border-right:none; }
+  button { padding:10px 20px; font-size:16px; border-radius:0 5px 5px 0; border:2px solid #333; background-color:#a3d9a5; cursor:pointer; margin:0 2px; }
+  .message { margin:5px 0; }
+  .user { color:#0077cc; }
+  .pet-msg { color:#cc5500; }
+</style>
+</head>
+<body>
+
+<div class="player-level">Player Level: <span id="playerLevel">1</span></div>
+
+<div class="pet-buttons">
+  <button onclick="switchPet('rabbit')">Rabbit 🐇</button>
+  <button onclick="switchPet('parrot')">Parrot 🦜</button>
+  <button onclick="switchPet('horse')">Horse 🐎</button>
+</div>
+
+<div class="pet-container">
+  <div class="pet" id="pet">🐇</div>
+  <div id="mood">Mood: 😊</div>
+  <div id="level">Pet Level: 1 | XP: 0/10</div>
+</div>
+
+<div class="chatbox" id="chatbox"></div>
+
+<div class="input-container">
+  <input type="text" id="userInput" placeholder="Talk to your pet...">
+  <button onclick="sendMessage()">Send</button>
+</div>
+
+<button id="readButton" onclick="showBookOptions()" disabled>Read to your pet 📚</button>
+<button id="bgButton" onclick="changeBackground()" disabled>Change Background 🎨</button>
+
+<script>
 const petEl = document.getElementById('pet');
 const moodEl = document.getElementById('mood');
 const levelEl = document.getElementById('level');
@@ -168,34 +215,47 @@ function changeBackground(){
   saveData();
 }
 
-// Load books dynamically
+// Books with chapter files
 const books = [
-  { title: "Alice's Adventures in Wonderland", file:"books/alice.txt", unlockLevel:5, text:"" },
-  { title: "The Adventures of Sherlock Holmes", file:"books/sherlock.txt", unlockLevel:6, text:"" },
-  { title: "Pride and Prejudice", file:"books/pride.txt", unlockLevel:7, text:"" }
+  { title: "Alice's Adventures in Wonderland", baseFile:"books/alice", chapters:3, unlockLevel:5, unlockedChapters:1, text:[] },
+  { title: "The Adventures of Sherlock Holmes", baseFile:"books/sherlock", chapters:2, unlockLevel:6, unlockedChapters:1, text:[] },
+  { title: "Pride and Prejudice", baseFile:"books/pride", chapters:1, unlockLevel:7, unlockedChapters:1, text:[] }
 ];
 
+// Load unlocked chapters
 async function loadBookTexts() {
-  for(let book of books){
-    try{
-      const res = await fetch(book.file);
-      book.text = await res.text();
-    }catch(e){ console.error(e); book.text=""; }
+  for (let book of books){
+    book.text = [];
+    for(let i=1; i<=book.unlockedChapters; i++){
+      try{
+        const response = await fetch(`${book.baseFile}${i}.txt`);
+        const chapterText = await response.text();
+        book.text.push(chapterText);
+      } catch(e){
+        console.error(`Failed to load ${book.title} chapter ${i}:`, e);
+        book.text.push("");
+      }
+    }
   }
 }
 
-function showBookOptions(){
-  if(playerData.level < 5){ alert("📚 Unlocks at Player Level 5!"); return; }
-  const available = books.filter(b=>playerData.level >= b.unlockLevel);
-  const sel = prompt(`Choose a book to read to your pet:\n${available.map((b,i)=>`${i+1}. ${b.title}`).join('\n')}`);
+// Show book options
+function showBookOptions() {
+  const available = books.filter(b => playerData.level >= b.unlockLevel);
+  if (available.length === 0) return alert("📚 Unlocks at Player Level 5+!");
+  const sel = prompt(`Choose a book to read to your pet:\n${available.map((b,i)=>`${i+1}. ${b.title} (Chapters unlocked: ${b.unlockedChapters}/${b.chapters})`).join('\n')}`);
   if(!sel) return;
   const index = parseInt(sel)-1;
   if(index<0 || index>=available.length) return alert("Invalid selection");
   readBookToPet(available[index]);
 }
 
+// Read one chapter at a time
 function readBookToPet(book){
-  const snippets = book.text.split(/\.\s+/);
+  const chapterIndex = book.unlockedChapters - 1;
+  if(chapterIndex >= book.text.length) return alert("No chapter loaded!");
+  const chapterText = book.text[chapterIndex];
+  const snippets = chapterText.split(/\.\s+/);
   let i=0;
   function readNext(){
     if(i>=snippets.length) return;
@@ -208,14 +268,24 @@ function readBookToPet(book){
       addXP(Math.ceil(words.length/5));
     }
     i++;
-    setTimeout(readNext, 1000);
+    setTimeout(readNext,1000);
   }
   readNext();
-  addMessage('pet', `📖 You started reading "${book.title}" to ${currentPet}.`);
+  addMessage('pet', `📖 You started reading chapter ${book.unlockedChapters} of "${book.title}".`);
+  if(book.unlockedChapters < book.chapters){
+    book.unlockedChapters++;
+    loadBookTexts();
+  }
 }
 
-document.getElementById('userInput').addEventListener('keypress', e=>{ if(e.key==='Enter') sendMessage(); });
+document.getElementById('userInput').addEventListener('keypress', e => { if(e.key==='Enter') sendMessage(); });
 
 animatePet();
 updateLevelDisplay();
 loadBookTexts();
+if(playerData.level>=2) bgButton.disabled=false;
+if(playerData.level>=5) readButton.disabled=false;
+
+</script>
+</body>
+</html>
