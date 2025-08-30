@@ -1,0 +1,11 @@
+body { font-family: 'Comic Sans MS', sans-serif; margin:0; display:flex; flex-direction:column; align-items:center; height:100vh; background-color:#f0f8ff; }
+.player-level { margin:10px; font-size:20px; font-weight:bold; }
+.pet-buttons, .input-container { margin:10px 0; }
+.pet-container { position:relative; width:100%; height:250px; }
+.pet { font-size:100px; position:absolute; bottom:0; left:50%; transform:translateX(-50%); cursor:pointer; }
+#chatbox { width:400px; max-width:90%; height:250px; border:2px solid #333; border-radius:10px; overflow-y:auto; background-color:#fff; padding:10px; margin:10px 0; }
+input { flex:1; padding:10px; font-size:16px; border-radius:5px 0 0 5px; border:2px solid #333; border-right:none; }
+button { padding:10px 20px; font-size:16px; border-radius:0 5px 5px 0; border:2px solid #333; background-color:#a3d9a5; cursor:pointer; margin:0 2px; }
+.message { margin:5px 0; }
+.user { color:#0077cc; }
+.pet-msg { color:#cc5500; }
