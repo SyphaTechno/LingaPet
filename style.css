@@ -1,11 +1,16 @@
-body { font-family: 'Comic Sans MS', sans-serif; margin:0; display:flex; flex-direction:column; align-items:center; height:100vh; background-color:#f0f8ff; }
-.player-level { margin:10px; font-size:20px; font-weight:bold; }
-.pet-buttons, .input-container { margin:10px 0; }
-.pet-container { position:relative; width:100%; height:250px; }
-.pet { font-size:100px; position:absolute; bottom:0; left:50%; transform:translateX(-50%); cursor:pointer; }
-#chatbox { width:400px; max-width:90%; height:250px; border:2px solid #333; border-radius:10px; overflow-y:auto; background-color:#fff; padding:10px; margin:10px 0; }
-input { flex:1; padding:10px; font-size:16px; border-radius:5px 0 0 5px; border:2px solid #333; border-right:none; }
-button { padding:10px 20px; font-size:16px; border-radius:0 5px 5px 0; border:2px solid #333; background-color:#a3d9a5; cursor:pointer; margin:0 2px; }
-.message { margin:5px 0; }
-.user { color:#0077cc; }
-.pet-msg { color:#cc5500; }
+body{margin:0;font-family:sans-serif;background:#f0f8ff;overflow-x:hidden;}
+.content{display:flex;flex-direction:column;align-items:center;padding:10px;}
+.pet-container{position:relative;width:100%;height:300px;border:1px solid #ccc;margin-bottom:10px;}
+.pet{position:absolute;bottom:0;font-size:50px;cursor:pointer;transition:bottom 0.1s;}
+.status-container{position:absolute;top:0;left:0;background:rgba(255,255,255,0.8);padding:5px;border-radius:5px;}
+.controls{margin:10px;display:flex;gap:5px;flex-wrap:wrap;justify-content:center;}
+.chatbox{width:80%;height:200px;border:1px solid #ccc;overflow-y:auto;margin:10px;padding:5px;background:#fff;}
+.input-container{display:flex;gap:5px;width:80%;justify-content:center;margin-bottom:20px;}
+input{flex:1;padding:5px;}
+.message{margin:2px;padding:2px;}
+.pet-msg{color:green;}
+.user{color:blue;}
+#languageProgressContainer{width:100%;height:10px;background:#ccc;margin:2px 0;}
+#languageProgress{height:100%;background:#4caf50;width:0%;}
+#petSelectionOverlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;font-size:1.2em;z-index:999;}
+
