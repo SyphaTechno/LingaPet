@@ -3,33 +3,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Interactive Pet</title>
+<title>LingaPet</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="player-level">Player Level: <span id="playerLevel">1</span></div>
 
-  <div class="pet-buttons">
-    <button onclick="switchPet('rabbit')">Rabbit 🐇</button>
-    <button onclick="switchPet('parrot')">Parrot 🦜</button>
-    <button onclick="switchPet('horse')">Horse 🐎</button>
+<div id="petSelectionOverlay">
+  <h2>Choose your starting pet!</h2>
+  <div style="display:flex; gap:20px;">
+    <button onclick="chooseStartingPet('rabbit')">Rabbit 🐇</button>
+    <button onclick="chooseStartingPet('parrot')">Parrot 🦜</button>
+    <button onclick="chooseStartingPet('horse')">Horse 🐎</button>
   </div>
+</div>
 
+<div class="content">
   <div class="pet-container">
     <div class="pet" id="pet">🐇</div>
-    <div id="mood">Mood: 😊</div>
-    <div id="level">Pet Level: 1 | XP: 0/10</div>
+    <div class="status-container">
+      <div id="playerLevel">Player Level: 1 | XP: 0/50</div>
+      <div id="petLevel">Pet Level: 1 | XP: 0/10</div>
+      <div id="languageLevel">Language Level: 1</div>
+      <div id="languageProgressContainer">
+        <div id="languageProgress"></div>
+      </div>
+      <div id="mood">Mood: 😊</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="petRabbitBtn" onclick="switchPet('rabbit')">Rabbit 🐇</button>
+    <button id="petParrotBtn" onclick="switchPet('parrot')">Parrot 🦜</button>
+    <button id="petHorseBtn" onclick="switchPet('horse')">Horse 🐎</button>
+    <button id="bgButton" onclick="changeBackground()" disabled>Change Background 🌈</button>
+    <button id="readButton" onclick="startReading()" disabled>Read 📖</button>
+    <select id="bookSelect">
+      <option value="alice1.txt">Alice in Wonderland</option>
+    </select>
+    <button onclick="insertPhrase()">Insert Phrase</button>
+    <button onclick="petTalkToOther()">Talk to Other Pet</button>
+    <button onclick="toggleAutoChat()">Toggle Auto Chat</button>
   </div>
 
   <div class="chatbox" id="chatbox"></div>
+
   <div class="input-container">
     <input type="text" id="userInput" placeholder="Talk to your pet...">
     <button onclick="sendMessage()">Send</button>
   </div>
+</div>
 
-  <button id="readButton" onclick="showBookOptions()" disabled>Read to your pet 📚</button>
-  <button id="bgButton" onclick="changeBackground()" disabled>Change Background 🎨</button>
-
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
