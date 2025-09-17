@@ -11,6 +11,8 @@ let hopDirection = 1;
 let hopAngle = 0;
 let autoChat = true;
 
+const petEmojis = { rabbit:'🐇', parrot:'🦜', horse:'🐎' };
+
 let playerData = JSON.parse(localStorage.getItem('playerData')) || {level:1, xp:0, xpThreshold:50, bgIndex:0};
 let petsData = JSON.parse(localStorage.getItem('petsData')) || {
   rabbit:{memory:[], progress:0, languageStage:1, mood:50, level:1, xp:0, xpThreshold:10},
@@ -24,20 +26,31 @@ const petSettings = {
   horse:{clickXP:1, chatXP:1, learnRate:0.5, babble:['neigh','snort','stamp','brrr']}
 };
 
-const backgrounds = ['#f0f8ff','#ffe4e1','linear-gradient(135deg,#f5f5dc,#e0ffff)','linear-gradient(120deg,#fafad2,#d8bfd8)','linear-gradient(270deg,#f5f5dc,#e0ffff,#fafad2,#d8bfd8)'];
+const backgrounds = [
+  '#f0f8ff','#ffe4e1',
+  'linear-gradient(135deg,#f5f5dc,#e0ffff)',
+  'linear-gradient(120deg,#fafad2,#d8bfd8)',
+  'linear-gradient(270deg,#f5f5dc,#e0ffff,#fafad2,#d8bfd8)'
+];
 
 function saveData(){ 
   localStorage.setItem('petsData', JSON.stringify(petsData)); 
   localStorage.setItem('playerData', JSON.stringify(playerData)); 
 }
 
-function addMessage(sender,text){ 
-  if(!currentPet && sender==='pet') return; 
+// now accepts optional petName for emoji
+function addMessage(sender,text,petName=null){ 
   const msg=document.createElement('div'); 
   msg.classList.add('message',sender==='pet'?'pet-msg':'user'); 
-  msg.textContent = sender==='pet' ? `${petEl.textContent} ${text}` : text;
-  document.getElementById('chatbox').appendChild(msg); 
-  document.getElementById('chatbox').scrollTop = document.getElementById('chatbox').scrollHeight; 
+  if(sender==='pet'){
+    const emoji = petName ? petEmojis[petName] : petEl.textContent;
+    msg.textContent = `${emoji} ${text}`;
+  }else{
+    msg.textContent = text;
+  }
+  const chatbox=document.getElementById('chatbox');
+  chatbox.appendChild(msg); 
+  chatbox.scrollTop = chatbox.scrollHeight; 
 }
 
 function moodEmoji(){ 
@@ -94,7 +107,6 @@ function updatePlayerDisplay(){
   document.getElementById('readButton').disabled = playerData.level < 5; 
 }
 
-// --------- LANGUAGE PROGRESS ----------
 function addLanguageProgress(amount) {
   if (!currentPet) return;
   const data = petsData[currentPet];
@@ -110,11 +122,9 @@ function addLanguageProgress(amount) {
   saveData();
 }
 
-// --------- PET FUNCTIONS ----------
 function chooseStartingPet(pet){ 
   currentPet = pet; 
-  const emojis = { rabbit: '🐇', parrot: '🦜', horse: '🐎' }; 
-  petEl.textContent = emojis[pet]; 
+  petEl.textContent = petEmojis[pet]; 
   document.getElementById('petSelectionOverlay').style.display = 'none'; 
   updateLevelDisplay(); 
   updatePlayerDisplay(); 
@@ -127,8 +137,7 @@ function chooseStartingPet(pet){
 function switchPet(pet){ 
   if(petsData[pet].level>0){ 
     currentPet=pet; 
-    const emojis={rabbit:'🐇',parrot:'🦜',horse:'🐎'}; 
-    petEl.textContent=emojis[pet]; 
+    petEl.textContent=petEmojis[pet]; 
     updateLevelDisplay(); 
     addMessage('pet',`Switched to ${pet}`); 
   } else addMessage('pet',`${pet} is locked.`); 
@@ -169,7 +178,6 @@ petEl.addEventListener('click',()=>{
   updateMood(2);
 });
 
-// --------- CHAT FUNCTIONS ----------
 function sendMessage(){ 
   if(!currentPet) return; 
   const input=document.getElementById('userInput').value.trim(); 
@@ -180,7 +188,6 @@ function sendMessage(){
 }
 document.getElementById('userInput').addEventListener('keypress',e=>{if(e.key==='Enter') sendMessage();});
 
-// ---------- PET RESPONSES ----------
 function petRespond(input){
   const data = petsData[currentPet];
   const trimmed = input.trim();
@@ -206,7 +213,6 @@ function petRespond(input){
   saveData();
 }
 
-// ---------- BOOK READING ----------
 function startReading(){ 
   const selectedBook = document.getElementById('bookSelect').value;
   fetch(`books/${selectedBook}`)
@@ -229,7 +235,6 @@ function startReading(){
 
 function insertPhrase(){ addMessage('user','[Phrase inserted]'); }
 
-// ---------- PET-TO-PET LEARNING ----------
 function learnFromOtherPet(petName) {
   const data = petsData[currentPet];
   const otherData = petsData[petName];
@@ -254,11 +259,10 @@ function petTalkToOther(){
   learnFromOtherPet(otherPet);
 
   const data = petsData[currentPet];
-  const line = data.memory.slice(-1)[0] || petSettings[currentPet].babble[Math.floor(Math.random() * petSettings[currentPet].babble.length)];
+  const line = data.memory.slice(-1)[0] || petSettings[currentPet].babble[Math.floor(Math.random()*petSettings[currentPet].babble.length)];
   addMessage('pet', line);
 }
 
-// ---------- AUTO CHAT ----------
 function toggleAutoChat(){ autoChat=!autoChat; addMessage('pet',`Auto chat ${autoChat?'enabled':'disabled'}`); saveData(); }
 
 function autoChatLoop(){
@@ -286,9 +290,9 @@ function autoChatLoop(){
       resp = generateMarkovResponse(chain, startWord, 5 + data.languageStage);
     }
 
-    addMessage('pet', resp);
+    // **pass the pet name here so the right emoji shows**
+    addMessage('pet', resp, p);
 
-    // Chance to learn from another pet
     if(Math.random() < 0.2){
       const otherPets = Object.keys(petsData).filter(p => p !== currentPet);
       if(otherPets.length > 0){
@@ -301,34 +305,32 @@ function autoChatLoop(){
   setTimeout(autoChatLoop, 15000 + Math.random() * 5000);
 }
 
-// ---------- BACKGROUND ----------
 function applyBackground(){ document.body.style.background=backgrounds[playerData.bgIndex]; }
-function changeBackground(){ const unlocked=Math.min(playerData.level,backgrounds.length); playerData.bgIndex=(playerData.bgIndex+1)%unlocked; applyBackground(); saveData(); }
+function changeBackground(){ playerData.bgIndex=(playerData.bgIndex+1)%backgrounds.length; applyBackground(); saveData(); }
 
-// ---------- MARKOV HELPERS ----------
 function buildMarkovChain(lines){
-  const chain = {};
-  lines.forEach(line => {
-    const words = line.split(/\s+/);
+  const chain={};
+  lines.forEach(line=>{
+    const words=line.split(/\s+/);
     for(let i=0;i<words.length-1;i++){
-      const w = words[i].toLowerCase();
-      const next = words[i+1].toLowerCase();
-      if(!chain[w]) chain[w] = [];
-      chain[w].push(next);
+      const word=words[i];
+      const next=words[i+1];
+      if(!chain[word]) chain[word]=[];
+      chain[word].push(next);
     }
   });
   return chain;
 }
-
-function generateMarkovResponse(chain, startWord, length){
-  const keys = Object.keys(chain);
-  let word = startWord && chain[startWord] ? startWord : keys[Math.floor(Math.random()*keys.length)];
-  let output = [word];
+function generateMarkovResponse(chain,startWord,length){
+  const keys=Object.keys(chain);
+  if(keys.length===0) return petSettings[currentPet].babble[Math.floor(Math.random()*petSettings[currentPet].babble.length)];
+  let word=startWord&&chain[startWord]?startWord:keys[Math.floor(Math.random()*keys.length)];
+  let result=[word];
   for(let i=0;i<length;i++){
-    const options = chain[word];
-    if(!options || options.length === 0) break;
-    word = options[Math.floor(Math.random()*options.length)];
-    output.push(word);
+    if(chain[word]){ 
+      word=chain[word][Math.floor(Math.random()*chain[word].length)];
+      result.push(word);
+    } else break;
   }
-  return output.join(' ');
+  return result.join(' ');
 }
