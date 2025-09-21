@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import make_pipeline
 import joblib
 from pathlib import Path
 
@@ -10,19 +9,31 @@ MODEL_PATH = Path("pet_model.pkl")
 class PetBrain:
     def __init__(self):
         if MODEL_PATH.exists():
-            self.model = joblib.load(MODEL_PATH)
+            saved = joblib.load(MODEL_PATH)
+            self.scaler = saved["scaler"]
+            self.clf = saved["clf"]
         else:
-            self.model = make_pipeline(
-                StandardScaler(),
-                SGDClassifier(loss="log_loss")
-            )
+            # Initialize scaler and classifier
+            self.scaler = StandardScaler()
+            self.clf = SGDClassifier(loss="log_loss")
+            
+            # Dummy initial data
             X = np.array([[0, 0], [1, 1]])
             y = np.array([0, 1])
-            self.model.partial_fit(X, y, classes=np.array([0, 1]))
+            self.scaler.fit(X)
+            self.clf.partial_fit(self.scaler.transform(X), y, classes=np.array([0, 1]))
+            self.save_model()
+
+    def save_model(self):
+        joblib.dump({"scaler": self.scaler, "clf": self.clf}, MODEL_PATH)
 
     def predict_action(self, features):
-        return int(self.model.predict([features])[0])
+        X = np.array([features])
+        X_scaled = self.scaler.transform(X)
+        return int(self.clf.predict(X_scaled)[0])
 
     def train(self, features, label):
-        self.model.partial_fit([features], [label])
-        joblib.dump(self.model, MODEL_PATH)
+        X = np.array([features])
+        X_scaled = self.scaler.transform(X)
+        self.clf.partial_fit(X_scaled, [label])
+        self.save_model()
