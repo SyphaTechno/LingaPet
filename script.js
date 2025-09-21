@@ -38,7 +38,37 @@ function saveData(){
   localStorage.setItem('playerData', JSON.stringify(playerData)); 
 }
 
-// now accepts optional petName for emoji
+// ------------------- BACKEND URL -------------------
+const BACKEND_URL = "https://lingapet.onrender.com"; //  Render URL
+
+// ------------------- CALL NEURAL NETWORK -------------------
+async function getPetAction(features) {
+  try {
+    const response = await fetch(`${BACKEND_URL}/predict`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({features})
+    });
+    const data = await response.json();
+    return data.action; // integer representing predicted action
+  } catch (err) {
+    console.error("Error predicting pet action:", err);
+    return 0; // fallback action
+  }
+}
+
+async function trainPet(features, label) {
+  try {
+    await fetch(`${BACKEND_URL}/train`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({features, label})
+    });
+  } catch (err) {
+    console.error("Error training pet:", err);
+  }
+}
+
 function addMessage(sender,text,petName=null){ 
   const msg=document.createElement('div'); 
   msg.classList.add('message',sender==='pet'?'pet-msg':'user'); 
@@ -173,7 +203,7 @@ petEl.addEventListener('click',()=>{
   const data=petsData[currentPet]; 
   const settings=petSettings[currentPet]; 
   const resp=data.memory.slice(-Math.min(3,data.memory.length)).join(' ') || settings.babble[Math.floor(Math.random()*settings.babble.length)]; 
-  addMessage('pet',resp); 
+  addMessage('pet',resp, currentPet); 
   addPetXP(settings.clickXP); 
   updateMood(2);
 });
@@ -188,7 +218,9 @@ function sendMessage(){
 }
 document.getElementById('userInput').addEventListener('keypress',e=>{if(e.key==='Enter') sendMessage();});
 
-function petRespond(input){
+// ------------------- OVERRIDE petRespond -------------------
+const originalPetRespond = petRespond;
+petRespond = async function(input) {
   const data = petsData[currentPet];
   const trimmed = input.trim();
   if(trimmed.length > 0){
@@ -196,23 +228,57 @@ function petRespond(input){
     if(data.memory.length > 500) data.memory.shift();
   }
 
-  let resp;
-  if(data.languageStage < 3){
-    resp = petSettings[currentPet].babble[Math.floor(Math.random()*petSettings[currentPet].babble.length)];
-  } else {
-    const chain = buildMarkovChain(data.memory);
-    const keywords = trimmed.toLowerCase().split(' ').filter(w => !['the','is','a','to','and','of','it'].includes(w));
-    const startWord = keywords.length > 0 ? keywords[Math.floor(Math.random()*keywords.length)] : null;
-    resp = generateMarkovResponse(chain, startWord, 5 + data.languageStage);
-  }
+  // Example features: mood (scaled 0-5) and languageStage
+  const features = [Math.floor(data.mood / 20), data.languageStage];
+  const actionIndex = await getPetAction(features);
 
-  addMessage('pet', resp);
+  // Map action index to responses
+  const actions = ["babbles happily","takes a nap","jumps around","runs in circles"];
+  const response = actions[actionIndex] || actions[0];
+
+  addMessage('pet', response, currentPet);
+
+  // Train neural net (label example: 1)
+  const label = 1;
+  trainPet(features, label);
+
   addPetXP(1);
   updateMood(1);
   addLanguageProgress(5);
   saveData();
-}
+};
 
+// ------------------- OVERRIDE autoChatLoop -------------------
+const originalAutoChatLoop = autoChatLoop;
+autoChatLoop = async function() {
+  if(!currentPet) return;
+
+  if(autoChat){
+    const pets = Object.keys(petsData);
+    const p = pets[Math.floor(Math.random()*pets.length)];
+    const data = petsData[p];
+
+    const features = [Math.floor(data.mood/20), data.languageStage];
+    const actionIndex = await getPetAction(features);
+
+    const actions = ["babbles happily","takes a nap","jumps around","runs in circles"];
+    const response = actions[actionIndex] || actions[0];
+
+    addMessage('pet', response, p);
+
+    if(Math.random() < 0.2){
+      const otherPets = Object.keys(petsData).filter(p => p !== currentPet);
+      if(otherPets.length > 0){
+        const other = otherPets[Math.floor(Math.random()*otherPets.length)];
+        learnFromOtherPet(other);
+      }
+    }
+  }
+
+  setTimeout(autoChatLoop, 15000 + Math.random() * 5000);
+};
+
+// ------------------- Remaining functions unchanged -------------------
 function startReading(){ 
   const selectedBook = document.getElementById('bookSelect').value;
   fetch(`books/${selectedBook}`)
@@ -264,46 +330,6 @@ function petTalkToOther(){
 }
 
 function toggleAutoChat(){ autoChat=!autoChat; addMessage('pet',`Auto chat ${autoChat?'enabled':'disabled'}`); saveData(); }
-
-function autoChatLoop(){
-  if(!currentPet) return;
-
-  if(autoChat){
-    const pets = Object.keys(petsData);
-    const p = pets[Math.floor(Math.random()*pets.length)];
-    const data = petsData[p];
-
-    let resp;
-    if(data.languageStage >= 4 && data.memory.length > 0 && Math.random() < 0.3){
-      const snippet = data.memory[Math.floor(Math.random()*data.memory.length)];
-      resp = snippet.length > 0 ? snippet : petSettings[p].babble[Math.floor(Math.random()*petSettings[p].babble.length)];
-    } else if(data.languageStage < 3){
-      resp = petSettings[p].babble[Math.floor(Math.random()*petSettings[p].babble.length)];
-    } else {
-      const chain = buildMarkovChain(data.memory);
-      const keywords = data.memory.length > 0 
-          ? data.memory[Math.floor(Math.random()*data.memory.length)]
-              .toLowerCase().split(' ')
-              .filter(w => !['the','is','a','to','and','of','it'].includes(w))
-          : [];
-      const startWord = keywords.length > 0 ? keywords[Math.floor(Math.random()*keywords.length)] : null;
-      resp = generateMarkovResponse(chain, startWord, 5 + data.languageStage);
-    }
-
-    // **pass the pet name here so the right emoji shows**
-    addMessage('pet', resp, p);
-
-    if(Math.random() < 0.2){
-      const otherPets = Object.keys(petsData).filter(p => p !== currentPet);
-      if(otherPets.length > 0){
-        const other = otherPets[Math.floor(Math.random()*otherPets.length)];
-        learnFromOtherPet(other);
-      }
-    }
-  }
-
-  setTimeout(autoChatLoop, 15000 + Math.random() * 5000);
-}
 
 function applyBackground(){ document.body.style.background=backgrounds[playerData.bgIndex]; }
 function changeBackground(){ playerData.bgIndex=(playerData.bgIndex+1)%backgrounds.length; applyBackground(); saveData(); }
